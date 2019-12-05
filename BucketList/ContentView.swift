@@ -11,6 +11,9 @@ struct ContentView: View {
     @State private var locations = [CodableMKPointAnnotation]()
     @State private var selectedPlace: MKPointAnnotation?
     @State private var showingPlaceDetails = false
+    @State private var showingErrorAlert = false
+    @State private var errorTitle = ""
+    @State private var errorMessage = ""
     @State private var showingEditScreen = false
     @State private var isUnlocked = false
 
@@ -31,13 +34,22 @@ struct ContentView: View {
                 .foregroundColor(Color.white)
                 .clipShape(Capsule())
             }
+            Text("")
+                .alert(isPresented: $showingPlaceDetails) {
+                    Alert(title: Text(selectedPlace?.title ?? "Unknown"),
+                          message: Text(selectedPlace?.subtitle ?? "Missing place information."),
+                          primaryButton: .default(Text("OK")),
+                          secondaryButton: .default(Text("Edit")) {
+                        self.showingEditScreen = true
+                    })
+                }
+            Text("")
+                .alert(isPresented: $showingErrorAlert) {
+                    Alert(title: Text(errorTitle),
+                          message: Text(errorMessage))
+            }
         }
         .onAppear(perform: loadData)
-        .alert(isPresented: $showingPlaceDetails) {
-            Alert(title: Text(selectedPlace?.title ?? "Unknown"), message: Text(selectedPlace?.subtitle ?? "Missing place information."), primaryButton: .default(Text("OK")), secondaryButton: .default(Text("Edit")) {
-                self.showingEditScreen = true
-            })
-        }
         .sheet(isPresented: $showingEditScreen, onDismiss: saveData) {
             if self.selectedPlace != nil {
                 EditView(placemark: self.selectedPlace!)
@@ -92,12 +104,16 @@ struct ContentView: View {
                     if success {
                         self.isUnlocked = true
                     } else {
-                        // error
+                        self.errorTitle = "Error"
+                        self.errorMessage = "Authentication Failed, Please try again."
+                        self.showingErrorAlert = true
                     }
                 }
             }
         } else {
-            // no biometrics
+            self.errorTitle = "Device Not Supported"
+            self.errorMessage = "Your Device does not support Biometrics Authentication"
+            self.showingErrorAlert = true
         }
     }
 }
