@@ -7,22 +7,32 @@ import MapKit
 import SwiftUI
 
 struct ContentView: View {
+    private enum AlertType {
+        case placeDetails
+        case error
+    }
+    
     @State private var centerCoordinate = CLLocationCoordinate2D()
     @State private var locations = [CodableMKPointAnnotation]()
     @State private var selectedPlace: MKPointAnnotation?
     @State private var showingPlaceDetails = false
-    @State private var showingErrorAlert = false
-    @State private var errorTitle = ""
-    @State private var errorMessage = ""
+    @State private var showingAlert = false
+    @State private var activeAlertType: AlertType = .error
+    @State private var alertTitle = ""
+    @State private var alertMessage = ""
     @State private var showingEditScreen = false
     @State private var isUnlocked = false
 
     var body: some View {
-        ZStack {
+        let showingPlaceDetailsBinding = Binding(
+            get: { self.showingPlaceDetails },
+            set: { self.showPlaceDetailsAlert($0) }
+        )
+        return ZStack {
             if self.isUnlocked {
                 PacesMapView(centerCoordinate: $centerCoordinate,
                              selectedPlace: $selectedPlace,
-                             showingPlaceDetails: $showingPlaceDetails,
+                             showingPlaceDetails: showingPlaceDetailsBinding,
                              locations: $locations,
                              showingEditScreen: $showingEditScreen)
             } else {
@@ -34,22 +44,22 @@ struct ContentView: View {
                 .foregroundColor(Color.white)
                 .clipShape(Capsule())
             }
-            Text("")
-                .alert(isPresented: $showingPlaceDetails) {
-                    Alert(title: Text(selectedPlace?.title ?? "Unknown"),
-                          message: Text(selectedPlace?.subtitle ?? "Missing place information."),
-                          primaryButton: .default(Text("OK")),
-                          secondaryButton: .default(Text("Edit")) {
-                        self.showingEditScreen = true
-                    })
-                }
-            Text("")
-                .alert(isPresented: $showingErrorAlert) {
-                    Alert(title: Text(errorTitle),
-                          message: Text(errorMessage))
-            }
         }
         .onAppear(perform: loadData)
+        .alert(isPresented: $showingAlert) {
+            switch activeAlertType {
+            case .placeDetails:
+                return Alert(title: Text(alertTitle),
+                             message: Text(alertMessage),
+                             primaryButton: .default(Text("OK")),
+                             secondaryButton: .default(Text("Edit")) {
+                    self.showingEditScreen = true
+                })
+            case .error:
+                return Alert(title: Text(alertTitle),
+                             message: Text(alertMessage))
+            }
+        }
         .sheet(isPresented: $showingEditScreen, onDismiss: saveData) {
             if self.selectedPlace != nil {
                 EditView(placemark: self.selectedPlace!)
@@ -104,17 +114,30 @@ struct ContentView: View {
                     if success {
                         self.isUnlocked = true
                     } else {
-                        self.errorTitle = "Error"
-                        self.errorMessage = "Authentication Failed, Please try again."
-                        self.showingErrorAlert = true
+                        self.showError(title: "Error",
+                                       message: "Authentication Failed, Please try again.")
                     }
                 }
             }
         } else {
-            self.errorTitle = "Device Not Supported"
-            self.errorMessage = "Your Device does not support Biometrics Authentication"
-            self.showingErrorAlert = true
+            showError(title: "Device Not Supported",
+                      message: "Your Device does not support Biometrics Authentication.")
         }
+    }
+    
+    private func showError(title: String, message: String) {
+        self.alertTitle = title
+        self.alertMessage = message
+        self.activeAlertType = .error
+        self.showingAlert = true
+    }
+    
+    private func showPlaceDetailsAlert(_ show: Bool) {
+        self.activeAlertType = .placeDetails
+        self.alertTitle = self.selectedPlace?.title ?? "Unknown"
+        self.alertMessage = self.selectedPlace?.subtitle ?? "Missing place information."
+        self.showingPlaceDetails = show
+        self.showingAlert = show
     }
 }
 
