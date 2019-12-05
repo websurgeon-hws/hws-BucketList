@@ -17,36 +17,11 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             if self.isUnlocked {
-                MapView(centerCoordinate: $centerCoordinate,
-                        selectedPlace: $selectedPlace,
-                        showingPlaceDetails: $showingPlaceDetails,
-                        annotations: locations)
-                Circle()
-                    .fill(Color.blue)
-                    .opacity(0.3)
-                    .frame(width: 32, height: 32)
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        Button(action: {
-                            let newLocation = CodableMKPointAnnotation()
-                            newLocation.title = "Example location"
-                            newLocation.coordinate = self.centerCoordinate
-                            self.locations.append(newLocation)
-                            self.selectedPlace = newLocation
-                            self.showingEditScreen = true
-                        }) {
-                            Image(systemName: "plus")
-                                .padding()
-                                .background(Color.black.opacity(0.75))
-                                .foregroundColor(.white)
-                                .font(.title)
-                                .clipShape(Circle())
-                                .padding(.trailing)
-                        }
-                    }
-                }
+                PacesMapView(centerCoordinate: $centerCoordinate,
+                             selectedPlace: $selectedPlace,
+                             showingPlaceDetails: $showingPlaceDetails,
+                             locations: $locations,
+                             showingEditScreen: $showingEditScreen)
             } else {
                 Button("Unlock Places") {
                     self.authenticate()
@@ -123,6 +98,49 @@ struct ContentView: View {
             }
         } else {
             // no biometrics
+        }
+    }
+}
+
+struct PacesMapView: View {
+    @Binding var centerCoordinate: CLLocationCoordinate2D
+    @Binding var selectedPlace: MKPointAnnotation?
+    @Binding var showingPlaceDetails: Bool
+    @Binding var locations: [CodableMKPointAnnotation]
+    @Binding var showingEditScreen: Bool
+
+    var body: some View {
+        ZStack {
+            MapView(centerCoordinate: $centerCoordinate,
+                    selectedPlace: $selectedPlace,
+                    showingPlaceDetails: $showingPlaceDetails,
+                    annotations: locations)
+            Circle()
+                .fill(Color.blue)
+                .opacity(0.3)
+                .frame(width: 32, height: 32)
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        let newLocation = CodableMKPointAnnotation()
+                        newLocation.title = "Example location"
+                        newLocation.coordinate = self.centerCoordinate
+                        self.locations.append(newLocation)
+                        self.selectedPlace = newLocation
+                        self.showingEditScreen = true
+                    }) {
+                        Image(systemName: "plus")
+                            .padding()
+                            .background(Color.black.opacity(0.75))
+                            .foregroundColor(.white)
+                            .font(.title)
+                            .clipShape(Circle())
+                            .padding(.trailing)
+                    }
+                }
+            }
         }
     }
 }
